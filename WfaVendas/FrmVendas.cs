@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using WfaVendas.LP2DataSetTableAdapters;
 
 namespace WfaVendas
 {
@@ -38,9 +39,9 @@ namespace WfaVendas
             this.pc_vendaTableAdapter.Fill(this.lP2DataSet.pc_venda);
             // TODO: esta linha de código carrega dados na tabela 'lP2DataSet.pc_itemvenda'. Você pode movê-la ou removê-la conforme necessário.
             this.pc_itemvendaTableAdapter.Fill(this.lP2DataSet.pc_itemvenda);
-            if (pc_vendaDataGridView.Rows.Count > 0)
+            if (dgvVendas.Rows.Count > 0)
             {
-                pc_vendaDataGridView.Rows[0].Selected = true;
+                dgvVendas.Rows[0].Selected = true;
             }
         }
 
@@ -133,41 +134,16 @@ namespace WfaVendas
             txtNumvenda.Focus();
         }
 
-        private void pc_vendaDataGridView_SelectionChanged(object sender, EventArgs e)
-        {
-            try
-            {
-                if (pc_vendaDataGridView.RowCount > 0)
-                {
-                    this.pc_itemvendaTableAdapter.FillByNumVenda(this.lP2DataSet.pc_itemvenda, Convert.ToInt32(pc_vendaDataGridView[0, pc_vendaDataGridView.CurrentRow.Index].Value.ToString()));
-                    if (pc_vendaDataGridView.RowCount > 0)
-                    {
-                        double total = (Double)pc_itemvendaTableAdapter.TotalVenda(Convert.ToInt32(pc_vendaDataGridView[0, pc_vendaDataGridView.CurrentRow.Index].Value.ToString()));
-                        txtTotal.Text = total.ToString("R$ #,###,##0.00");
-                    }
-                    else
-                    {
-                        txtTotal.Text = "R$ 0,00";
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-
-                MessageBox.Show(null, "Ocorreu um erro:\n " + ex.Message, "Erro ao acessar os items da VENDA: ", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-
         private void btnApagar_Click(object sender, EventArgs e)
         {
             try
             {
-                if (pc_vendaDataGridView.SelectedRows.Count > 0)
+                if (dgvVendas.SelectedRows.Count > 0)
                 {
                     if (MessageBox.Show(null, "Deseja mesmo excluir a VENDA selecionada?", "Atenção: ", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2) == DialogResult.Yes)
                     {
-                        pc_itemvendaTableAdapter.DeleteTodos(Convert.ToInt32(pc_vendaDataGridView[0, pc_vendaDataGridView.CurrentRow.Index].Value.ToString()));
-                        pc_vendaTableAdapter.Delete(Convert.ToInt32(pc_vendaDataGridView[0, pc_vendaDataGridView.CurrentRow.Index].Value.ToString()));
+                        pc_itemvendaTableAdapter.DeleteTodos(Convert.ToInt32(dgvVendas[0, dgvVendas.CurrentRow.Index].Value.ToString()));
+                        pc_vendaTableAdapter.Delete(Convert.ToInt32(dgvVendas[0, dgvVendas.CurrentRow.Index].Value.ToString()));
                         FrmVendas_Load(null, null);
                         MessageBox.Show(null, "Apagado com sucesso!", "Sucesso: ", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     }
@@ -223,17 +199,17 @@ namespace WfaVendas
 
         private void btnEditar_Click(object sender, EventArgs e)
         {
-            if (pc_vendaDataGridView.SelectedRows.Count > 0)
+            if (dgvVendas.SelectedRows.Count > 0)
             {
                 editar = true;
                 habilitaBotoes(false);
                 habilitaCampos(true);
                 txtNumvenda.Enabled = false;
-                txtNumvenda.Text = pc_vendaDataGridView[0, pc_vendaDataGridView.CurrentRow.Index].Value.ToString();
-                cmbNome.SelectedValue = Convert.ToInt32(pc_vendaDataGridView[1, pc_vendaDataGridView.CurrentRow.Index].Value.ToString());
-                dtpDataVenda.Value = Convert.ToDateTime(pc_vendaDataGridView[2, pc_vendaDataGridView.CurrentRow.Index].Value.ToString());
-                dtpDataEntrega.Value = Convert.ToDateTime(pc_vendaDataGridView[3, pc_vendaDataGridView.CurrentRow.Index].Value.ToString());
-                txtObs.Text = pc_vendaDataGridView[4, pc_vendaDataGridView.CurrentRow.Index].Value.ToString();
+                txtNumvenda.Text = dgvVendas[0, dgvVendas.CurrentRow.Index].Value.ToString();
+                cmbNome.SelectedValue = Convert.ToInt32(dgvVendas[1, dgvVendas.CurrentRow.Index].Value.ToString());
+                dtpDataVenda.Value = Convert.ToDateTime(dgvVendas[2, dgvVendas.CurrentRow.Index].Value.ToString());
+                dtpDataEntrega.Value = Convert.ToDateTime(dgvVendas[3, dgvVendas.CurrentRow.Index].Value.ToString());
+                txtObs.Text = dgvVendas[4, dgvVendas.CurrentRow.Index].Value.ToString();
                 cmbNome.Focus();
             }
             else 
@@ -264,7 +240,169 @@ namespace WfaVendas
         private void btnIncluirItem_Click(object sender, EventArgs e)
         {
             incluirItem = true;
+            habilitaCamposItem(false);
+            habilitaBotoesItem(false);
+            cmbProduto_SelectedIndexChanged(null, null);
+            cmbProduto.Focus();
+        }
 
+        private void cmbProduto_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            DataTable produto = pc_produtoTableAdapter.GetDataBy(cmbProduto.Text); //TODO arrumar o getby no database, capaz de ter que arrumar em todos os tables
+            precoTemp = 0;
+            foreach (DataRow row in produto.Rows)
+            {
+                precoTemp = Convert.ToDouble(row["precounit"].ToString());
+            }
+            nudQuantidade.Value = 1;
+            txtPrecoUnit.Text = precoTemp.ToString("R$ #,###,##0.00");
+            txtBoxSubtotal.Text = precoTemp.ToString("R$ #,###,##0.00");
+        }
+
+        private void nudQuantidade_ValueChanged(object sender, EventArgs e)
+        {
+            double subTotal = (Int32)nudQuantidade.Value * precoTemp;
+            txtBoxSubtotal.Text = subTotal.ToString("R$ #,###,##0.00");
+        }
+
+        private void btnApagarItem_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                if (dgvItens.SelectedRows.Count > 0)
+                {
+                    if (MessageBox.Show(null, "Deseja mesmo excluir o ITEM selecionado?", "Atenção: ", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2) == DialogResult.Yes)
+                    {
+                        pc_itemvendaTableAdapter.DeleteTodos(Convert.ToInt32(dgvVendas[0, dgvVendas.CurrentRow.Index].Value.ToString()));
+                        pc_itemvendaTableAdapter.DeleteTodos(Convert.ToInt32(dgvItens[0, dgvItens.CurrentRow.Index].Value.ToString()));
+                        dgvVendas_SelectionChanged(null, null);
+                        MessageBox.Show(null, "Apagado com sucesso!", "Exclusão: ", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+
+                }
+                else
+                {
+                    MessageBox.Show(null, "Selecione um item primeiro!", "Erro ao excluir: ", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(null, "Ocorreu um erro:\n" + ex.Message, "Erro: ", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void dgvVendas_SelectionChanged(object sender, EventArgs e)
+        {
+            try
+            {
+                if (dgvVendas.RowCount > 0)
+                {
+                    this.pc_itemvendaTableAdapter.FillByNumVenda(this.lP2DataSet.pc_itemvenda, Convert.ToInt32(dgvVendas[0, dgvVendas.CurrentRow.Index].Value.ToString()));
+                    if (dgvVendas.RowCount > 0)
+                    {
+                        double total = (Double)pc_itemvendaTableAdapter.TotalVenda(Convert.ToInt32(dgvVendas[0, dgvVendas.CurrentRow.Index].Value.ToString()));
+                        txtTotal.Text = total.ToString("R$ #,###,##0.00");
+                    }
+                    else
+                    {
+                        txtTotal.Text = "R$ 0,00";
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+
+                MessageBox.Show(null, "Ocorreu um erro:\n " + ex.Message, "Erro ao acessar os items da VENDA: ", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+
+        }
+
+        private void btnEditarItem_Click(object sender, EventArgs e)
+        {
+            if (dgvItens.SelectedRows.Count > 0)
+            {
+                editarItem = true;
+                habilitaBotoesItem(false); 
+                habilitaCamposItem(true);
+                cmbProduto.Text = dgvItens[1, dgvItens.CurrentRow.Index].Value.ToString();
+                cmbProduto_SelectedIndexChanged(null, null);
+                nudQuantidade.Value = Convert.ToInt32(dgvItens[2, dgvItens.CurrentRow.Index].Value.ToString());
+                cmbProduto.Focus();
+            }
+            else
+            {
+                MessageBox.Show(null, "Selecione um ITEM primeiro!", "Erro: ", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void btnPesquisarItem_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                if (dgvItens.RowCount > 0)
+                {
+                    if (cmbProduto.Enabled == false)
+                    {
+                        cmbProduto.Enabled = true;
+                        cmbProduto.Focus();
+                        habilitaBotoesItem(false);
+                        btnPesquisarItem.Enabled = true;
+                        btnGravarItem.Enabled = false;
+                        btnCancelarItem.Enabled = false;
+                        MessageBox.Show(null, "Digite o nome do ITEM desejado ou " + "\nparte dele.", "Pesquisa: ", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                    else
+                    {
+                        //pc_itemvendaTableAdapter.FillByDescricao(this.lP2DataSet.pc_itemvenda,Convert.ToInt32(dgvVendas[0, dgvVendas.CurrentRow.Index].Value.ToString()), "%" + cmbProduto.Text + "%"); <-- não sei pq krls ta dando erro
+                        btnCancelar_Click(null, null);
+                    }
+                }
+                else
+                {
+                    MessageBox.Show(null, "Cadastre um item primeiro!", "Erro ao excluir: ", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(null, "Ocorreu um erro: \n" + ex.Message, "Erro: ", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void btnCancelarItem_Click(object sender, EventArgs e)
+        {
+            limpaCampos(grpItem);
+            habilitaCamposItem(false);
+            habilitaBotoesItem(true);
+            editarItem = false;
+            incluirItem = false;    
+        }
+
+        private void btnGravarItem_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                if (incluirItem)
+                {
+                    pc_itemvendaTableAdapter.Insert(Convert.ToInt32(dgvVendas[0, dgvVendas.CurrentRow.Index].Value.ToString()), (Int32)cmbProduto.SelectedValue, (Int32)nudQuantidade.Value, precoTemp);
+                    MessageBox.Show(null, "Incluido com sucesso!", "Inclusão", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                if (editarItem)
+                {
+                    pc_itemvendaTableAdapter.Update((Int32)cmbProduto.SelectedValue, (Int32)nudQuantidade.Value, (Int32)precoTemp, Convert.ToInt32(dgvVendas[0, dgvVendas.CurrentRow.Index].Value.ToString()));
+                    MessageBox.Show(null, "Alterado com sucesso!", "Alteração: ", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                dgvVendas_SelectionChanged(null, null);
+                btnCancelarItem_Click(null, null);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(null, "Ocorreu um erro: \n" + ex.Message, "Erro: ", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void btnTodos_Click(object sender, EventArgs e)
+        {
+            FrmVendas_Load(null, null);
         }
     }
 }
