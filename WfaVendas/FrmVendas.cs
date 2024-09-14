@@ -208,6 +208,62 @@ namespace WfaVendas
 
         private void btnCancelar_Click(object sender, EventArgs e)
         {
+            limpaCampos(this);
+            limpaCampos(grpItem);
+            habilitaCampos(false);
+            habilitaBotoes(true);
+            editar = false;
+            incluir = false;
+        }
+
+        private void btnSair_Click(object sender, EventArgs e)
+        {
+            Close();
+        }
+
+        private void btnEditar_Click(object sender, EventArgs e)
+        {
+            if (pc_vendaDataGridView.SelectedRows.Count > 0)
+            {
+                editar = true;
+                habilitaBotoes(false);
+                habilitaCampos(true);
+                txtNumvenda.Enabled = false;
+                txtNumvenda.Text = pc_vendaDataGridView[0, pc_vendaDataGridView.CurrentRow.Index].Value.ToString();
+                cmbNome.SelectedValue = Convert.ToInt32(pc_vendaDataGridView[1, pc_vendaDataGridView.CurrentRow.Index].Value.ToString());
+                dtpDataVenda.Value = Convert.ToDateTime(pc_vendaDataGridView[2, pc_vendaDataGridView.CurrentRow.Index].Value.ToString());
+                dtpDataEntrega.Value = Convert.ToDateTime(pc_vendaDataGridView[3, pc_vendaDataGridView.CurrentRow.Index].Value.ToString());
+                txtObs.Text = pc_vendaDataGridView[4, pc_vendaDataGridView.CurrentRow.Index].Value.ToString();
+                cmbNome.Focus();
+            }
+            else 
+            {
+                MessageBox.Show(null, "Selecione uma Venda Primeiro!", "Erro: ", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+
+        private void btnPesquisar_Click(object sender, EventArgs e)
+        {
+            if (cmbNome.Enabled == false)
+            {
+                cmbNome.Enabled = true;
+                cmbNome.Focus();
+                habilitaBotoes(false);
+                btnPesquisar.Enabled = true;
+                btnGravar.Enabled = false; 
+                btnCancelar.Enabled = false;
+                MessageBox.Show(null, "Digite o nome do cliente desejado ou " + "\nparte dele.", "Pesquisa: ", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            else
+            {
+                pc_vendaTableAdapter.FillByNome(this.lP2DataSet.pc_venda, "%" + cmbNome.Text + "%");
+                btnCancelar_Click(null, null);
+            }
+        }
+
+        private void btnIncluirItem_Click(object sender, EventArgs e)
+        {
+            incluirItem = true;
 
         }
     }
